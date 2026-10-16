@@ -1,5 +1,8 @@
 <?php
-// --- Configuration ---
+/**
+ * Pharmacie DZ - Suppression d'un médicament
+ */
+
 $host = 'localhost';
 $db   = 'pharmacie';
 $user = 'root';
@@ -19,16 +22,12 @@ try {
     die("Connexion échouée : " . htmlspecialchars($e->getMessage()));
 }
 
-// --- Vérifier si un ID est passé ---
-if (isset($_GET['id'])) {
-    $idToDelete = (int) $_GET['id'];
+$idToDelete = (int)($_POST['id'] ?? $_GET['id'] ?? 0);
 
-    if ($idToDelete > 0) {
-        $stmt = $pdo->prepare("DELETE FROM `$table` WHERE `ID` = ?");
-        $stmt->execute([$idToDelete]);
-    }
+if ($idToDelete > 0) {
+    $stmt = $pdo->prepare("DELETE FROM `$table` WHERE `ID` = ?");
+    $stmt->execute([$idToDelete]);
 }
 
-// Redirection vers la liste
-header("Location: index.php");
+header("Location: index.php?msg=deleted");
 exit;

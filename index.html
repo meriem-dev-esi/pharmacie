@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pharmacie DZ - Registre National des Médicaments</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased bg-slate-50">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo & Brand -->
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="resetFilters()">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+            <i data-lucide="pill" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xl font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">Pharmacie DZ</span>
+              <span class="bg-emerald-100 text-emerald-800 text-[10px] font-semibold px-2 py-0.5 rounded-full">Officiel</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block">Nomenclature nationale des médicaments d'Algérie</p>
+          </div>
+        </div>
+
+        <!-- Right action buttons -->
+        <div class="flex items-center space-x-3">
+          <!-- Ordonnance / Panier button -->
+          <button id="cartBtn" onclick="toggleCartModal()" class="relative flex items-center space-x-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+            <i data-lucide="clipboard-list" class="w-4 h-4 text-emerald-600"></i>
+            <span class="hidden md:inline">Ordonnance</span>
+            <span id="cartCountBadge" class="bg-emerald-600 text-white text-xs font-bold px-1.5 py-0.2 rounded-full hidden">0</span>
+          </button>
+
+          <!-- Export CSV button -->
+          <a href="/api/export-csv" download class="hidden sm:flex items-center space-x-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-2xs transition-colors">
+            <i data-lucide="download" class="w-4 h-4 text-slate-600"></i>
+            <span>Export CSV</span>
+          </a>
+
+          <!-- + Nouveau médicament -->
+          <button onclick="openCreateModal()" class="flex items-center space-x-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm shadow-emerald-600/30 transition-all hover:shadow-md">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Nouveau Médicament</span>
+            <span class="sm:hidden">Ajouter</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPI / Statistics Banner -->
+    <div id="statsSection" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <i data-lucide="database" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Référencés</p>
+          <h3 id="statTotal" class="text-2xl font-bold text-slate-900 mt-0.5">...</h3>
+          <p class="text-[11px] text-slate-400">Nomenclature enregistrée</p>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+          <i data-lucide="shield-check" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Remboursables</p>
+          <h3 id="statReimbursable" class="text-2xl font-bold text-teal-700 mt-0.5">...</h3>
+          <p id="statReimbursablePercent" class="text-[11px] text-teal-600 font-medium">Couverture Chifa</p>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <i data-lucide="layers" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Génériques (Ge)</p>
+          <h3 id="statGenerics" class="text-2xl font-bold text-blue-700 mt-0.5">...</h3>
+          <p class="text-[11px] text-slate-400">Production & Équivalents</p>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+          <i data-lucide="building-2" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Laboratoires</p>
+          <h3 id="statLabs" class="text-2xl font-bold text-indigo-700 mt-0.5">...</h3>
+          <p class="text-[11px] text-slate-400">Algérie & International</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search & Filter Card -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 sm:p-5 space-y-4">
+      <!-- Search Input Row -->
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <i data-lucide="search" class="w-5 h-5"></i>
+        </div>
+        <input 
+          id="searchInput" 
+          type="text" 
+          placeholder="Rechercher par Nom commercial (ex: AMOXIL), DCI (ex: PARACETAMOL), Code, ou Laboratoire..." 
+          class="w-full pl-11 pr-10 py-3 text-sm sm:text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-slate-50/50 transition"
+        >
+        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Filters & Sorting Row -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <!-- Reimbursement -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Remboursement</label>
+          <select id="filterReimbursement" onchange="onFilterChange()" class="w-full px-2.5 py-1.5 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white">
+            <option value="">Tous</option>
+            <option value="OUI">Remboursable (Oui)</option>
+            <option value="NON">Non remboursable (Non)</option>
+          </select>
+        </div>
+
+        <!-- Prescription List -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Liste Tableau</label>
+          <select id="filterListe" onchange="onFilterChange()" class="w-full px-2.5 py-1.5 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white">
+            <option value="">Toutes</option>
+            <option value="Liste I">Liste I (Rouge)</option>
+            <option value="Liste II">Liste II (Vert)</option>
+          </select>
+        </div>
+
+        <!-- Pharmaceutical Form -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Forme</label>
+          <select id="filterForm" onchange="onFilterChange()" class="w-full px-2.5 py-1.5 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white">
+            <option value="">Toutes les formes</option>
+            <option value="COMP">Comprimé</option>
+            <option value="GEL">Gélule</option>
+            <option value="SIROP">Sirop</option>
+            <option value="SOL">Solution</option>
+            <option value="INJ">Injectable</option>
+            <option value="POMMADE">Pommade / Crème</option>
+            <option value="COLLYRE">Collyre</option>
+            <option value="SUPPO">Suppositoire</option>
+          </select>
+        </div>
+
+        <!-- Origin Country -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Pays d'origine</label>
+          <select id="filterCountry" onchange="onFilterChange()" class="w-full px-2.5 py-1.5 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white">
+            <option value="">Tous les pays</option>
+            <option value="ALGERIE">Algérie</option>
+            <option value="FRANCE">France</option>
+            <option value="JORDANIE">Jordanie</option>
+            <option value="INDE">Inde</option>
+            <option value="ALLEMAGNE">Allemagne</option>
+            <option value="ITALIE">Italie</option>
+          </select>
+        </div>
+
+        <!-- Sort By -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Trier par</label>
+          <select id="sortBy" onchange="onFilterChange()" class="w-full px-2.5 py-1.5 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white">
+            <option value="NOM_DE_MARQUE" data-order="asc">Nom (A &rarr; Z)</option>
+            <option value="NOM_DE_MARQUE" data-order="desc">Nom (Z &rarr; A)</option>
+            <option value="PRIX" data-order="asc">Prix croissant</option>
+            <option value="PRIX" data-order="desc">Prix décroissant</option>
+            <option value="ID" data-order="asc">ID / Numéro</option>
+          </select>
+        </div>
+
+        <!-- View Mode & Reset -->
+        <div class="flex items-end space-x-2">
+          <div class="flex-1">
+            <button onclick="resetFilters()" class="w-full py-1.5 px-3 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition text-center flex items-center justify-center space-x-1">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              <span>Effacer</span>
+            </button>
+          </div>
+          <!-- Grid / Table view toggle -->
+          <div class="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+            <button id="viewGridBtn" onclick="setViewMode('grid')" class="p-1 rounded-md text-emerald-600 bg-white shadow-2xs transition" title="Vue grille">
+              <i data-lucide="layout-grid" class="w-4 h-4"></i>
+            </button>
+            <button id="viewTableBtn" onclick="setViewMode('table')" class="p-1 rounded-md text-slate-500 hover:text-slate-800 transition" title="Vue tableau">
+              <i data-lucide="table" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Filters Summary & Count -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm text-slate-500 gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="font-medium text-slate-800" id="resultCount">Chargement...</span>
+        <span id="activeFilterTags" class="inline-flex flex-wrap gap-1"></span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <label for="limitSelect" class="text-xs text-slate-500">Par page :</label>
+        <select id="limitSelect" onchange="onLimitChange()" class="border border-slate-200 rounded-md text-xs py-1 px-2 bg-white">
+          <option value="12">12</option>
+          <option value="24" selected>24</option>
+          <option value="48">48</option>
+          <option value="96">96</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Medicines Container (Grid / Table) -->
+    <div id="medicinesContainer" class="min-h-[400px]">
+      <!-- Cards Grid or Table rendered by app.js -->
+    </div>
+
+    <!-- Pagination Controls -->
+    <div id="paginationContainer" class="flex items-center justify-between bg-white px-4 py-3 border border-slate-200 rounded-xl shadow-2xs">
+      <div class="text-xs sm:text-sm text-slate-500">
+        Page <span id="currentPageNum" class="font-semibold text-slate-800">1</span> sur <span id="totalPagesNum" class="font-semibold text-slate-800">1</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button id="prevPageBtn" onclick="changePage(-1)" class="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          <span>Précédent</span>
+        </button>
+        <button id="nextPageBtn" onclick="changePage(1)" class="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1">
+          <span>Suivant</span>
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. DETAIL MODAL -->
+  <div id="detailModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 flex flex-col">
+      <!-- Header -->
+      <div class="p-6 border-b border-slate-100 flex items-start justify-between bg-gradient-to-r from-emerald-50/60 to-slate-50">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span id="modalTypeBadge" class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">Ge</span>
+            <span id="modalListeBadge" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-100 text-rose-800">Liste I</span>
+            <span id="modalRemboursementBadge" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-teal-100 text-teal-800">Remboursable</span>
+          </div>
+          <h2 id="modalBrandName" class="text-2xl font-bold text-slate-900 mt-2">Nom de Marque</h2>
+          <p id="modalDci" class="text-sm font-medium text-emerald-700 mt-0.5">DCI (Substance Active)</p>
+        </div>
+        <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Body Content -->
+      <div class="p-6 space-y-6 flex-1 text-sm">
+        <!-- Key specs grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <div>
+            <span class="text-xs text-slate-500 block">Forme</span>
+            <span id="modalForme" class="font-semibold text-slate-800 text-sm">COMP. PELLI.</span>
+          </div>
+          <div>
+            <span class="text-xs text-slate-500 block">Dosage</span>
+            <span id="modalDosage" class="font-semibold text-slate-800 text-sm">10MG</span>
+          </div>
+          <div>
+            <span class="text-xs text-slate-500 block">Conditionnement</span>
+            <span id="modalCond" class="font-semibold text-slate-800 text-sm">B/30</span>
+          </div>
+          <div>
+            <span class="text-xs text-slate-500 block">Prix Enregistré</span>
+            <span id="modalPrice" class="font-bold text-emerald-700 text-base">PCSU 150.00 DA</span>
+          </div>
+          <div>
+            <span class="text-xs text-slate-500 block">Code National</span>
+            <span id="modalCode" class="font-semibold text-slate-800 text-sm">01 A 003</span>
+          </div>
+          <div>
+            <span class="text-xs text-slate-500 block">Stabilité / Péremption</span>
+            <span id="modalStabilite" class="font-semibold text-slate-800 text-sm">36 MOIS</span>
+          </div>
+        </div>
+
+        <!-- Administrative & Laboratory Details -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Laboratoire & Origine</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-3 rounded-lg border border-slate-100 bg-white">
+              <span class="text-xs text-slate-500 block">Laboratoire Titulaire</span>
+              <span id="modalLab" class="font-medium text-slate-800">SAIDAL</span>
+            </div>
+            <div class="p-3 rounded-lg border border-slate-100 bg-white">
+              <span class="text-xs text-slate-500 block">Pays de Fabrication</span>
+              <span id="modalCountry" class="font-medium text-slate-800">ALGERIE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enregistrement & Disponibilité -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Homologation & Décision</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-3 rounded-lg border border-slate-100 bg-white">
+              <span class="text-xs text-slate-500 block">N° Enregistrement</span>
+              <span id="modalNumEnreg" class="font-medium text-slate-800 text-xs break-all">352/15 F 099/16</span>
+            </div>
+            <div class="p-3 rounded-lg border border-slate-100 bg-white">
+              <span class="text-xs text-slate-500 block">Date Initiale</span>
+              <span id="modalDateInit" class="font-medium text-slate-800">2016-12-04</span>
+            </div>
+            <div class="p-3 rounded-lg border border-slate-100 bg-white">
+              <span class="text-xs text-slate-500 block">Disponibilité</span>
+              <span id="modalDisp" class="font-medium text-slate-800">Officine & Hôpital</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+        <button id="modalFindEquivBtn" class="flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-100/80 hover:bg-emerald-200 rounded-lg transition">
+          <i data-lucide="repeat" class="w-4 h-4"></i>
+          <span>Trouver les génériques équivalents</span>
+        </button>
+        <div class="flex items-center space-x-2">
+          <button id="modalAddToCartBtn" class="flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition shadow-xs">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Ajouter à l'ordonnance</span>
+          </button>
+          <button onclick="closeDetailModal()" class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 bg-white border border-slate-200 rounded-lg transition">
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. EQUIVALENTS MODAL -->
+  <div id="equivModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-slate-100 flex flex-col">
+      <div class="p-6 border-b border-slate-100 flex items-start justify-between bg-emerald-50/50">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-emerald-200 text-emerald-900">Équivalents Thérapeutiques</span>
+          </div>
+          <h2 id="equivSubstanceTitle" class="text-xl font-bold text-slate-900 mt-1">DCI : PARACETAMOL</h2>
+          <p class="text-xs text-slate-500">Médicaments partageant la même molécule active et dosage</p>
+        </div>
+        <button onclick="closeEquivModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1">
+        <div id="equivListContainer" class="space-y-3">
+          <!-- Populated by app.js -->
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <button onclick="closeEquivModal()" class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 bg-white border border-slate-200 rounded-lg">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ORDONNANCE / CALCULATEUR DE PRIX MODAL -->
+  <div id="cartModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] shadow-2xl border border-slate-100 flex flex-col">
+      <div class="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <i data-lucide="receipt" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Calculateur d'Ordonnance & Remboursement</h2>
+            <p class="text-xs text-slate-500">Estimation du montant total et part remboursée (Chifa)</p>
+          </div>
+        </div>
+        <button onclick="toggleCartModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Cart Item List -->
+      <div id="cartItemsContainer" class="p-6 overflow-y-auto flex-1 space-y-3">
+        <!-- Rendered by app.js -->
+      </div>
+
+      <!-- Cart Totals & Actions -->
+      <div class="p-6 bg-slate-50 border-t border-slate-100 space-y-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white p-3.5 rounded-xl border border-slate-200 text-xs">
+          <div>
+            <span class="text-slate-500 block">Total Médicaments</span>
+            <span id="cartTotalPrice" class="text-base font-bold text-slate-900">0.00 DA</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Total Remboursable</span>
+            <span id="cartReimbursableTotal" class="text-base font-bold text-emerald-600">0.00 DA</span>
+          </div>
+          <div class="col-span-2 sm:col-span-1">
+            <span class="text-slate-500 block">Reste à Charge Estimé (20%)</span>
+            <span id="cartPatientShare" class="text-base font-bold text-slate-700">0.00 DA</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <button onclick="clearCart()" class="text-xs text-rose-600 hover:text-rose-800 font-medium">
+            Vider l'ordonnance
+          </button>
+          <div class="flex items-center space-x-2">
+            <button onclick="window.print()" class="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center space-x-1.5">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              <span>Imprimer</span>
+            </button>
+            <button onclick="toggleCartModal()" class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+              Terminer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. CREATE / EDIT MEDICINE MODAL -->
+  <div id="formModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-100 flex flex-col">
+      <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <h2 id="formModalTitle" class="text-xl font-bold text-slate-900">Nouveau Médicament</h2>
+        <button onclick="closeFormModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <form id="medicineForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4 flex-1">
+        <input type="hidden" id="formId">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Nom de marque -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nom de Marque *</label>
+            <input type="text" id="formBrand" required placeholder="ex: DOLIPRANE" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500">
+          </div>
+
+          <!-- DCI -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">DCI (Substance Active) *</label>
+            <input type="text" id="formDci" required placeholder="ex: PARACETAMOL" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500">
+          </div>
+
+          <!-- Forme -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Forme Pharmaceutique</label>
+            <input type="text" id="formForme" placeholder="ex: COMP. SEC." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500">
+          </div>
+
+          <!-- Dosage -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Dosage</label>
+            <input type="text" id="formDosage" placeholder="ex: 500MG ou 1G" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500">
+          </div>
+
+          <!-- Conditionnement -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Conditionnement</label>
+            <input type="text" id="formCond" placeholder="ex: B/16 ou B/1 FL" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500">
+          </div>
+
+          <!-- Prix -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Prix Enregistré (DA)</label>
+            <input type="text" id="formPrice" placeholder="ex: PCSU 120,50 DA" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500">
+          </div>
+
+          <!-- Remboursement -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Remboursement Chifa</label>
+            <select id="formRemboursement" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white">
+              <option value="OUI">OUI (Remboursable)</option>
+              <option value="NON">NON</option>
+            </select>
+          </div>
+
+          <!-- Liste -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Liste (Tableau)</label>
+            <select id="formListe" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white">
+              <option value="">Hors Liste (Vente libre)</option>
+              <option value="Liste I">Liste I (Ordonnance obligatoire)</option>
+              <option value="Liste II">Liste II</option>
+            </select>
+          </div>
+
+          <!-- Type -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Type de Produit</label>
+            <select id="formType" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 bg-white">
+              <option value="Ge">Générique (Ge)</option>
+              <option value="Re">Princeps / Référence (Re)</option>
+            </select>
+          </div>
+
+          <!-- Code National -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Code National</label>
+            <input type="text" id="formCode" placeholder="ex: 01 A 003" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500">
+          </div>
+
+          <!-- Laboratoire -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Laboratoire Titulaire</label>
+            <input type="text" id="formLab" placeholder="ex: SAIDAL / EL KENDI" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500">
+          </div>
+
+          <!-- Pays -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Pays</label>
+            <input type="text" id="formCountry" placeholder="ex: ALGERIE" value="ALGERIE" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500">
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+          <button type="button" onclick="closeFormModal()" class="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 bg-white border border-slate-200 rounded-lg">
+            Annuler
+          </button>
+          <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm">
+            Enregistrer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>

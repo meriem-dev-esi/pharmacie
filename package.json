@@ -1,0 +1,19 @@
+{
+  "name": "pharmacie-dz",
+  "version": "1.0.0",
+  "description": "Application Web moderne du Registre National des Médicaments d'Algérie",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "parse-sql": "node parse_sql.js"
+  },
+  "keywords": [
+    "pharmacie",
+    "algerie",
+    "medicaments",
+    "chifa",
+    "dci"
+  ],
+  "author": "",
+  "license": "MIT"
+}
